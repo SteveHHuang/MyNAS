@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ye11owh's Private Storage</title>
+    <style>
+        :root { --primary: #0070f3; --bg: #f4f7f9; }
+        body { font-family: -apple-system, system-ui, sans-serif; background: var(--bg); margin: 0; padding: 20px; display: flex; justify-content: center; }
+        .container { width: 100%; max-width: 900px; background: white; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); padding: 25px; }
+        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--bg); padding-bottom: 15px; margin-bottom: 15px; }
+        .breadcrumb { font-size: 14px; color: #666; margin-bottom: 20px; }
+        .breadcrumb span { color: var(--primary); cursor: pointer; font-weight: 600; }
+        .item { display: flex; align-items: center; padding: 12px; border-radius: 8px; transition: 0.2s; cursor: pointer; border-bottom: 1px solid #f0f0f0; }
+        .item:hover { background: #f0f7ff; }
+        .item-icon { font-size: 20px; margin-right: 15px; }
+        .item-info { flex-grow: 1; }
+        .item-name { font-weight: 500; color: #333; }
+        .item-meta { font-size: 12px; color: #999; }
+        .btn-download { text-decoration: none; background: var(--primary); color: white; padding: 6px 12px; border-radius: 6px; font-size: 13px; }
+        .empty { text-align: center; padding: 40px; color: #999; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2 style="margin:0;">📁 我的云端硬盘</h2>
+        </div>
+        <div id="breadcrumb" class="breadcrumb"></div>
+        <div id="file-list">
+            <div class="empty">正在努力加载文件列表...</div>
+        </div>
+    </div>
+
+    <script>
+        
+        const API_URL = 'https://api.ye11owh.com'; 
+        const FILE_URL = 'https://nas.ye11owh.com';
+
+        async function listFiles(prefix = '') {
+            const listContainer = document.getElementById('file-list');
+            try {
+                const response = await fetch(`${API_URL}?prefix=${prefix}`);
+                const data = await response.json();
+                render(data, prefix);
+            } catch (err) {
+                listContainer.innerHTML = `<div class="empty">❌ 加载失败，请确认 API 解析已生效 (HTTPS 握手可能需要时间)</div>`;
+            }
+        }
+
+        function render(data, prefix) {
+            const listContainer = document.getElementById('file-list');
+            const breadcrumb = document.getElementById('breadcrumb');
+            listContainer.innerHTML = '';
+
+            // 渲染面包屑导航
+            let bcHtml = '<span onclick="listFiles(\'\')">根目录</span>';
+            let pathAcc = '';
+            prefix.split('/').filter(Boolean).forEach(p => {
+                pathAcc += p + '/';
+                bcHtml += ` / <span onclick="listFiles('${pathAcc}')">${p}</span>`;
+            });
+            breadcrumb.innerHTML = bcHtml;
+
+            if (data.folders.length === 0 && data.files.length === 0) {
+                listContainer.innerHTML = '<div class="empty">此文件夹空空如也</div>';
+                return;
+            }
+
+            // 渲染文件夹
+            data.folders.forEach(f => {
+                const name = f.replace(prefix, '').replace('/', '');
+                const div = document.createElement('div');
+                div.className = 'item';
+                div.innerHTML = `<div class="item-icon">📂</div><div class="item-info"><div class="item-name">${name}</div></div>`;
+                div.onclick = () => listFiles(f);
+                listContainer.appendChild(div);
+            });
+
+            // 渲染文件
+            data.files.forEach(f => {
+                if (f.name === prefix) return;
+                const name = f.name.replace(prefix, '');
+                const div = document.createElement('div');
+                div.className = 'item';
+                div.innerHTML = `
+                    <div class="item-icon">📄</div>
+                    <div class="item-info">
+                        <div class="item-name">${name}</div>
+                        <div class="item-meta">${(f.size/1024).toFixed(1)} KB</div>
+                    </div>
+                    <a href="${FILE_URL}/${f.name}" target="_blank" class="btn-download" onclick="event.stopPropagation()">下载</a>
+                `;
+                listContainer.appendChild(div);
+            });
+        }
+
+        // 初始化加载
+        listFiles();
+    </script>
+</body>
+</html>
