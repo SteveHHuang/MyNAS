@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>hh的网络存储</title>
+    <title>Steve 的个人网盘</title>
     <style>
         :root { --primary-color: #2563eb; --bg-color: #f8fafc; }
         body { font-family: -apple-system, sans-serif; background: var(--bg-color); margin: 0; padding: 20px; }
@@ -33,6 +33,7 @@
 
 <script>
     // ======= 核心配置 =======
+    const API_URL = 'https://api.steveh1110.com'; 
     async function fetchFiles() {
         // 获取当前 URL 里的文件夹路径参数
         const urlParams = new URLSearchParams(window.location.search);
@@ -96,6 +97,7 @@
             document.getElementById('file-list').innerHTML = '<li>加载失败，请检查 API 配置</li>';
         }
     }
+    fetchFiles();
 </script>
 
 </body>
