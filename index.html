@@ -3,100 +3,79 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ye11owh's Private Storage</title>
+    <title>hh的网络存储</title>
     <style>
-        :root { --primary: #0070f3; --bg: #f4f7f9; }
-        body { font-family: -apple-system, system-ui, sans-serif; background: var(--bg); margin: 0; padding: 20px; display: flex; justify-content: center; }
-        .container { width: 100%; max-width: 900px; background: white; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); padding: 25px; }
-        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--bg); padding-bottom: 15px; margin-bottom: 15px; }
-        .breadcrumb { font-size: 14px; color: #666; margin-bottom: 20px; }
-        .breadcrumb span { color: var(--primary); cursor: pointer; font-weight: 600; }
-        .item { display: flex; align-items: center; padding: 12px; border-radius: 8px; transition: 0.2s; cursor: pointer; border-bottom: 1px solid #f0f0f0; }
-        .item:hover { background: #f0f7ff; }
-        .item-icon { font-size: 20px; margin-right: 15px; }
-        .item-info { flex-grow: 1; }
-        .item-name { font-weight: 500; color: #333; }
-        .item-meta { font-size: 12px; color: #999; }
-        .btn-download { text-decoration: none; background: var(--primary); color: white; padding: 6px 12px; border-radius: 6px; font-size: 13px; }
-        .empty { text-align: center; padding: 40px; color: #999; }
+        :root { --primary-color: #2563eb; --bg-color: #f8fafc; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg-color); margin: 0; padding: 20px; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); }
+        h1 { color: #1e293b; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; }
+        .file-list { list-style: none; padding: 0; }
+        .file-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid #f1f5f9; transition: background 0.2s; }
+        .file-item:hover { background: #f8fafc; }
+        .file-info { display: flex; flex-direction: column; }
+        .file-name { font-weight: 500; color: #334155; }
+        .file-size { font-size: 0.85rem; color: #64748b; }
+        .actions { display: flex; gap: 8px; }
+        .btn { padding: 6px 12px; border-radius: 6px; text-decoration: none; font-size: 0.9rem; transition: opacity 0.2s; }
+        .btn:hover { opacity: 0.8; }
+        .btn-preview { background: #10b981; color: white; }
+        .btn-download { background: var(--primary-color); color: white; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h2 style="margin:0;">📁 我的云端硬盘</h2>
-        </div>
-        <div id="breadcrumb" class="breadcrumb"></div>
-        <div id="file-list">
-            <div class="empty">正在努力加载文件列表...</div>
-        </div>
-    </div>
 
-    <script>
-        const API_URL = 'https://api.steveh1110.com'; 
-        const FILE_URL = 'https://api.steveh1110.com';
+<div class="container">
+    <h1>我的文件库</h1>
+    <ul id="file-list" class="file-list">
+        <li>正在加载文件列表...</li>
+    </ul>
+</div>
 
-        async function listFiles(prefix = '') {
-            const listContainer = document.getElementById('file-list');
-            try {
-                const response = await fetch(`${API_URL}?prefix=${prefix}`);
-                const data = await response.json();
-                render(data, prefix);
-            } catch (err) {
-                listContainer.innerHTML = `<div class="empty">❌ 加载失败，请确认 API 解析已生效 (HTTPS 握手可能需要时间)</div>`;
-            }
-        }
+<script>
+    // ======= 核心配置 =======
+    const API_URL = 'https://api.steveh1110.com'; 
 
-        function render(data, prefix) {
-            const listContainer = document.getElementById('file-list');
-            const breadcrumb = document.getElementById('breadcrumb');
-            listContainer.innerHTML = '';
+    async function fetchFiles() {
+        try {
+            const response = await fetch(API_URL);
+            const data = await response.json();
+            const listElement = document.getElementById('file-list');
+            listElement.innerHTML = '';
 
-            // 渲染面包屑导航
-            let bcHtml = '<span onclick="listFiles(\'\')">根目录</span>';
-            let pathAcc = '';
-            prefix.split('/').filter(Boolean).forEach(p => {
-                pathAcc += p + '/';
-                bcHtml += ` / <span onclick="listFiles('${pathAcc}')">${p}</span>`;
-            });
-            breadcrumb.innerHTML = bcHtml;
-
-            if (data.folders.length === 0 && data.files.length === 0) {
-                listContainer.innerHTML = '<div class="empty">此文件夹空空如也</div>';
+            if (data.files.length === 0) {
+                listElement.innerHTML = '<li>文件夹是空的</li>';
                 return;
             }
 
-            // 渲染文件夹
-            data.folders.forEach(f => {
-                const name = f.replace(prefix, '').replace('/', '');
-                const div = document.createElement('div');
-                div.className = 'item';
-                div.innerHTML = `<div class="item-icon">📂</div><div class="item-info"><div class="item-name">${name}</div></div>`;
-                div.onclick = () => listFiles(f);
-                listContainer.appendChild(div);
-            });
+            data.files.forEach(file => {
+                const li = document.createElement('li');
+                li.className = 'file-item';
+                
+                // 编码文件名处理特殊字符
+                const encodedName = encodeURIComponent(file.name);
+                const fileUrl = `${API_URL}/${encodedName}`;
+                const isPdf = file.name.toLowerCase().endsWith('.pdf');
 
-            // 渲染文件
-            data.files.forEach(f => {
-                if (f.name === prefix) return;
-                const name = f.name.replace(prefix, '');
-                const div = document.createElement('div');
-                div.className = 'item';
-                div.innerHTML = `
-                    <div class="item-icon">📄</div>
-                    <div class="item-info">
-                        <div class="item-name">${name}</div>
-                        <div class="item-meta">${(f.size/1024).toFixed(1)} KB</div>
+                li.innerHTML = `
+                    <div class="file-info">
+                        <span class="file-name">${file.name}</span>
+                        <span class="file-size">${(file.size / 1024 / 1024).toFixed(2)} MB</span>
                     </div>
-                    <a href="${FILE_URL}/${f.name}" target="_blank" class="btn-download" onclick="event.stopPropagation()">下载</a>
-                    <a href="https://api.steveh1110.com/文件名.pdf" target="_blank">预览 PDF</a>
+                    <div class="actions">
+                        ${isPdf ? `<a href="${fileUrl}" target="_blank" class="btn btn-preview">预览</a>` : ''}
+                        <a href="${fileUrl}" download class="btn btn-download">下载</a>
+                    </div>
                 `;
-                listContainer.appendChild(div);
+                listElement.appendChild(li);
             });
+        } catch (error) {
+            document.getElementById('file-list').innerHTML = '<li>加载失败，请检查 API 状态</li>';
+            console.error('Error:', error);
         }
+    }
 
-        // 初始化加载
-        listFiles();
-    </script>
+    fetchFiles();
+</script>
+
 </body>
 </html>
