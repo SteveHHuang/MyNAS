@@ -33,32 +33,55 @@
 
 <script>
     // ======= 核心配置 =======
-    const API_URL = 'https://api.steveh1110.com'; 
-
     async function fetchFiles() {
+        // 获取当前 URL 里的文件夹路径参数
+        const urlParams = new URLSearchParams(window.location.search);
+        const currentPrefix = urlParams.get('prefix') || '';
+        
         try {
-            const response = await fetch(API_URL);
+            // 请求 API 时带上 prefix 参数
+            const response = await fetch(`${API_URL}?prefix=${encodeURIComponent(currentPrefix)}`);
             const data = await response.json();
             const listElement = document.getElementById('file-list');
             listElement.innerHTML = '';
 
-            if (data.files.length === 0) {
-                listElement.innerHTML = '<li>文件夹是空的</li>';
-                return;
+            // 1. 添加“返回上一级”按钮
+            if (currentPrefix !== '') {
+                const backLi = document.createElement('li');
+                backLi.className = 'file-item';
+                backLi.innerHTML = `<a href="?prefix=" style="color: var(--primary-color); text-decoration: none;">⬅️ 返回根目录</a>`;
+                listElement.appendChild(backLi);
             }
 
-            data.files.forEach(file => {
+            // 2. 渲染文件夹 (Folders)
+            data.folders.forEach(folder => {
                 const li = document.createElement('li');
                 li.className = 'file-item';
-                
-                // 编码文件名处理特殊字符
+                li.innerHTML = `
+                    <div class="file-info">
+                        <span class="file-name">📁 ${folder}</span>
+                    </div>
+                    <div class="actions">
+                        <a href="?prefix=${encodeURIComponent(folder)}" class="btn btn-preview">打开</a>
+                    </div>
+                `;
+                listElement.appendChild(li);
+            });
+
+            // 3. 渲染文件 (Files)
+            data.files.forEach(file => {
+                // 如果文件名就是文件夹名本身，跳过不显示
+                if (file.name === currentPrefix) return;
+
+                const li = document.createElement('li');
+                li.className = 'file-item';
                 const encodedName = encodeURIComponent(file.name);
                 const fileUrl = `${API_URL}/${encodedName}`;
                 const isPdf = file.name.toLowerCase().endsWith('.pdf');
 
                 li.innerHTML = `
                     <div class="file-info">
-                        <span class="file-name">${file.name}</span>
+                        <span class="file-name">📄 ${file.name.replace(currentPrefix, '')}</span>
                         <span class="file-size">${(file.size / 1024 / 1024).toFixed(2)} MB</span>
                     </div>
                     <div class="actions">
@@ -68,13 +91,11 @@
                 `;
                 listElement.appendChild(li);
             });
+
         } catch (error) {
-            document.getElementById('file-list').innerHTML = '<li>加载失败，请检查 API 状态</li>';
-            console.error('Error:', error);
+            document.getElementById('file-list').innerHTML = '<li>加载失败，请检查 API 配置</li>';
         }
     }
-
-    fetchFiles();
 </script>
 
 </body>
