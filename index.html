@@ -3,100 +3,107 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Steve 的个人网盘</title>
+    <title>hh的共享文件</title>
     <style>
-        :root { --primary-color: #2563eb; --bg-color: #f8fafc; }
-        body { font-family: -apple-system, sans-serif; background: var(--bg-color); margin: 0; padding: 20px; }
-        .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); }
-        h1 { color: #1e293b; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; }
-        .file-list { list-style: none; padding: 0; }
-        .file-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid #f1f5f9; transition: background 0.2s; }
-        .file-item:hover { background: #f8fafc; }
-        .file-info { display: flex; flex-direction: column; }
-        .file-name { font-weight: 500; color: #334155; }
-        .file-size { font-size: 0.85rem; color: #64748b; }
-        .actions { display: flex; gap: 8px; }
-        .btn { padding: 6px 12px; border-radius: 6px; text-decoration: none; font-size: 0.9rem; transition: opacity 0.2s; }
-        .btn:hover { opacity: 0.8; }
-        .btn-preview { background: #10b981; color: white; }
-        .btn-download { background: var(--primary-color); color: white; }
+        :root { --primary-color: #2563eb; --bg-color: #f1f5f9; }
+        body { font-family: -apple-system, system-ui, sans-serif; background: var(--bg-color); margin: 0; padding: 15px; }
+        .container { max-width: 900px; margin: 0 auto; background: white; padding: 25px; border-radius: 16px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
+        h1 { font-size: 1.5rem; color: #0f172a; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+        .file-list { list-style: none; padding: 0; margin: 0; }
+        .file-item { display: flex; justify-content: space-between; align-items: center; padding: 14px; border-bottom: 1px solid #f1f5f9; border-radius: 8px; transition: all 0.2s; }
+        .file-item:hover { background: #f8fafc; transform: translateX(5px); }
+        .file-info { display: flex; flex-direction: column; overflow: hidden; }
+        .file-name { font-weight: 500; color: #334155; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .file-size { font-size: 0.75rem; color: #94a3b8; }
+        .actions { display: flex; gap: 10px; flex-shrink: 0; }
+        .btn { padding: 6px 14px; border-radius: 8px; text-decoration: none; font-size: 0.85rem; font-weight: 600; transition: all 0.2s; }
+        .btn-preview { background: #ecfdf5; color: #059669; border: 1px solid #10b981; }
+        .btn-download { background: #eff6ff; color: #2563eb; border: 1px solid #3b82f6; }
+        .btn:hover { filter: brightness(0.95); }
+        .loading { text-align: center; color: #64748b; padding: 40px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>我的文件库</h1>
+    <h1 id="title">📁 我的共享文件</h1>
     <ul id="file-list" class="file-list">
-        <li>正在加载文件列表...</li>
+        <div class="loading">正在扫描仓库，请稍候...</div>
     </ul>
 </div>
 
 <script>
-    // ======= 核心配置 =======
-    const API_URL = 'https://api.steveh1110.com'; 
+    const API_URL = 'https://api.steveh1110.com';
+
     async function fetchFiles() {
-        // 获取当前 URL 里的文件夹路径参数
         const urlParams = new URLSearchParams(window.location.search);
-        const currentPrefix = urlParams.get('prefix') || '';
-        
+        const prefix = urlParams.get('prefix') || '';
+        const listElement = document.getElementById('file-list');
+
         try {
-            // 请求 API 时带上 prefix 参数
-            const response = await fetch(`${API_URL}?prefix=${encodeURIComponent(currentPrefix)}`);
+            // 访问轻量化后的 Worker 接口
+            const response = await fetch(`${API_URL}?prefix=${encodeURIComponent(prefix)}`);
+            if (!response.ok) throw new Error('API 响应异常');
+            
             const data = await response.json();
-            const listElement = document.getElementById('file-list');
             listElement.innerHTML = '';
 
-            // 1. 添加“返回上一级”按钮
-            if (currentPrefix !== '') {
+            // 1. 返回上一级
+            if (prefix !== '') {
                 const backLi = document.createElement('li');
                 backLi.className = 'file-item';
-                backLi.innerHTML = `<a href="?prefix=" style="color: var(--primary-color); text-decoration: none;">⬅️ 返回根目录</a>`;
+                backLi.innerHTML = `<a href="?prefix=" style="color: var(--primary-color); text-decoration: none; font-weight: bold;">⬅️ 返回根目录</a>`;
                 listElement.appendChild(backLi);
             }
 
-            // 2. 渲染文件夹 (Folders)
-            data.folders.forEach(folder => {
-                const li = document.createElement('li');
-                li.className = 'file-item';
-                li.innerHTML = `
-                    <div class="file-info">
-                        <span class="file-name">📁 ${folder}</span>
-                    </div>
-                    <div class="actions">
-                        <a href="?prefix=${encodeURIComponent(folder)}" class="btn btn-preview">打开</a>
-                    </div>
-                `;
-                listElement.appendChild(li);
-            });
+            // 2. 渲染文件夹 (对应 R2 原始数据的 delimitedPrefixes)
+            if (data.delimitedPrefixes) {
+                data.delimitedPrefixes.forEach(folder => {
+                    const li = document.createElement('li');
+                    li.className = 'file-item';
+                    li.innerHTML = `
+                        <div class="file-info"><span class="file-name">📁 ${folder}</span></div>
+                        <div class="actions"><a href="?prefix=${encodeURIComponent(folder)}" class="btn btn-download">打开</a></div>
+                    `;
+                    listElement.appendChild(li);
+                });
+            }
 
-            // 3. 渲染文件 (Files)
-            data.files.forEach(file => {
-                // 如果文件名就是文件夹名本身，跳过不显示
-                if (file.name === currentPrefix) return;
+            // 3. 渲染文件 (对应 R2 原始数据的 objects)
+            if (data.objects) {
+                data.objects.forEach(file => {
+                    if (file.key === prefix) return; // 跳过目录自身
 
-                const li = document.createElement('li');
-                li.className = 'file-item';
-                const encodedName = encodeURIComponent(file.name);
-                const fileUrl = `${API_URL}/${encodedName}`;
-                const isPdf = file.name.toLowerCase().endsWith('.pdf');
+                    const li = document.createElement('li');
+                    li.className = 'file-item';
+                    const fileUrl = `${API_URL}/${encodeURIComponent(file.key)}`;
+                    const isPdf = file.key.toLowerCase().endsWith('.pdf');
+                    const displayName = file.key.replace(prefix, '');
 
-                li.innerHTML = `
-                    <div class="file-info">
-                        <span class="file-name">📄 ${file.name.replace(currentPrefix, '')}</span>
-                        <span class="file-size">${(file.size / 1024 / 1024).toFixed(2)} MB</span>
-                    </div>
-                    <div class="actions">
-                        ${isPdf ? `<a href="${fileUrl}" target="_blank" class="btn btn-preview">预览</a>` : ''}
-                        <a href="${fileUrl}" download class="btn btn-download">下载</a>
-                    </div>
-                `;
-                listElement.appendChild(li);
-            });
+                    li.innerHTML = `
+                        <div class="file-info">
+                            <span class="file-name">📄 ${displayName}</span>
+                            <span class="file-size">${(file.size / 1024 / 1024).toFixed(2)} MB</span>
+                        </div>
+                        <div class="actions">
+                            ${isPdf ? `<a href="${fileUrl}" target="_blank" class="btn btn-preview">预览</a>` : ''}
+                            <a href="${fileUrl}" download class="btn btn-download">下载</a>
+                        </div>
+                    `;
+                    listElement.appendChild(li);
+                });
+            }
+
+            if (listElement.innerHTML === '') {
+                listElement.innerHTML = '<div class="loading">这里空空如也...</div>';
+            }
 
         } catch (error) {
-            document.getElementById('file-list').innerHTML = '<li>加载失败，请检查 API 配置</li>';
+            console.error(error);
+            listElement.innerHTML = `<div class="loading" style="color: #ef4444;">❌ 加载失败：${error.message}<br>请检查 Worker 绑定及域名状态</div>`;
         }
     }
+
     fetchFiles();
 </script>
 
