@@ -61,8 +61,11 @@
                 data.delimitedPrefixes.forEach(folder => {
                     const li = document.createElement('li');
                     li.className = 'file-item';
+                    
+                    const folderDisplayName = folder.replace(prefix, '').replace(/\/$/, '');
+                    
                     li.innerHTML = `
-                        <div class="file-info"><span class="file-name">📁 ${folder}</span></div>
+                        <div class="file-info"><span class="file-name">📁 ${folderDisplayName}</span></div>
                         <div class="actions"><a href="?prefix=${encodeURIComponent(folder)}" class="btn btn-download">打开</a></div>
                     `;
                     listElement.appendChild(li);
