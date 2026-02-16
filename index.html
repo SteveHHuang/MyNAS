@@ -77,15 +77,20 @@
             if (data.objects) {
                 data.objects.forEach(file => {
                     if (file.key === prefix) return; 
-
+            
+                    // ✨ 这里的逻辑改掉：
+                    // 不管 key 是 "books/A/B/C.pdf" 还是 "1.pdf"
+                    // 我们只取最后一段
                     const fileParts = file.key.split('/');
-                    const fileName = fileParts[fileParts.length - 1];
+                    const fileName = fileParts[fileParts.length - 1]; 
                     
-                    // 定义不同的链接
+                    // 如果 fileName 为空（比如路径以/结尾），则跳过
+                    if (!fileName) return;
+            
                     const previewUrl = `${API_DOMAIN}/${encodeURIComponent(file.key)}`;
                     const downloadUrl = `${NAS_DOMAIN}/${encodeURIComponent(file.key)}`;
                     const isPdf = file.key.toLowerCase().endsWith('.pdf');
-
+            
                     const li = document.createElement('li');
                     li.className = 'file-item';
                     li.innerHTML = `
