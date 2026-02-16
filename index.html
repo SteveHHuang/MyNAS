@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>hh的共享文件 - 全局搜索版</title>
+    <title>hh的共享文件</title>
     <style>
         :root { 
             --primary-color: #2563eb; 
@@ -18,34 +18,35 @@
         
         h1 { font-size: 1.5rem; margin: 0 0 20px 5px; display: flex; align-items: center; gap: 10px; }
 
-        /* 功能区 */
+        /* 功能区：仅保留导航控制 */
         .function-area { 
             background: var(--card-bg); 
-            padding: 20px; 
+            padding: 16px 20px; 
             border-radius: 12px; 
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
             margin-bottom: 20px;
             border: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            gap: 12px;
         }
 
-        .nav-row { display: flex; align-items: center; gap: 12px; margin-bottom: 15px; }
         .nav-controls { display: flex; gap: 6px; }
         .nav-btn {
             width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;
             background: white; border: 1px solid var(--border-color); border-radius: 8px;
             cursor: pointer; color: var(--text-muted); font-size: 1.2rem; transition: 0.2s;
         }
-        .nav-btn:hover:not(:disabled) { border-color: var(--primary-color); color: var(--primary-color); background: #eff6ff; }
-        .nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+        .nav-btn:hover { border-color: var(--primary-color); color: var(--primary-color); background: #eff6ff; }
 
         .breadcrumb {
             flex: 1; display: flex; flex-wrap: wrap; align-items: center; padding: 0 16px;
-            background: #f1f5f9; border-radius: 8px; font-size: 0.95rem; height: 36px; overflow: hidden;
+            background: #f1f5f9; border-radius: 8px; font-size: 0.95rem; height: 36px;
         }
-        .breadcrumb-item { display: flex; align-items: center; white-space: nowrap; }
+        .breadcrumb-item { display: flex; align-items: center; }
         .breadcrumb-item + .breadcrumb-item::before { content: "›"; padding: 0 8px; color: #cbd5e1; font-size: 1.2rem; }
         .breadcrumb-item a { color: var(--primary-color); text-decoration: none; font-weight: 500; }
-
+        .breadcrumb-item.active { color: var(--text-muted); }
 
         /* 文件列表区 */
         .file-list-container {
@@ -60,25 +61,20 @@
             display: flex; justify-content: space-between; align-items: center; 
             padding: 16px 20px; border-bottom: 1px solid #f1f5f9; transition: 0.2s;
         }
+        .file-item:last-child { border-bottom: none; }
         .file-item:hover { background: #f8fafc; }
         
-        .file-info { display: flex; flex-direction: column; overflow: hidden; margin-right: 15px; flex: 1; }
-        .file-name { font-weight: 500; color: var(--text-main); font-size: 1rem; margin-bottom: 2px; word-break: break-all; }
-        
-        /* 路径显示样式 */
-        .file-path { font-size: 0.75rem; color: #94a3b8; display: flex; align-items: center; gap: 4px; }
-        .file-path span { background: #f1f5f9; padding: 1px 6px; border-radius: 4px; }
-
-        .file-meta { font-size: 0.8rem; color: var(--text-muted); margin-top: 4px; }
+        .file-info { display: flex; flex-direction: column; overflow: hidden; margin-right: 15px; }
+        .file-name { font-weight: 500; color: var(--text-main); font-size: 1rem; margin-bottom: 4px; }
+        .file-meta { font-size: 0.8rem; color: var(--text-muted); }
 
         .actions { display: flex; gap: 8px; flex-shrink: 0; }
-        .btn { padding: 7px 16px; border-radius: 6px; text-decoration: none; font-size: 0.85rem; font-weight: 600; border: 1px solid transparent; cursor: pointer; }
+        .btn { padding: 7px 16px; border-radius: 6px; text-decoration: none; font-size: 0.85rem; font-weight: 600; border: 1px solid transparent; cursor: pointer; transition: 0.2s; }
         .btn-preview { background: #ecfdf5; color: #059669; border-color: #d1fae5; }
         .btn-download { background: #eff6ff; color: #2563eb; border-color: #dbeafe; }
         .btn-folder { background: #fff7ed; color: #c2410c; border-color: #ffedd5; }
-
+        
         .loading { text-align: center; color: var(--text-muted); padding: 50px; }
-        .highlight { color: #e11d48; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -87,24 +83,16 @@
     <h1>📁 我的共享文件</h1>
     
     <div class="function-area">
-        <div class="nav-row">
-            <div class="nav-controls">
-                <button class="nav-btn" onclick="history.back()">←</button>
-                <button class="nav-btn" onclick="history.forward()">→</button>
-            </div>
-            <nav id="breadcrumb" class="breadcrumb"></nav>
+        <div class="nav-controls">
+            <button class="nav-btn" onclick="history.back()" title="后退">←</button>
+            <button class="nav-btn" onclick="history.forward()" title="前进">→</button>
         </div>
-        
-        <div class="search-row">
-            <span class="search-icon">🔍</span>
-            <input type="text" id="search-input" placeholder="输入关键字进行全库搜索..." onkeyup="handleSearch(event)">
-            <div id="search-status">正在深度搜索中...</div>
-        </div>
+        <nav id="breadcrumb" class="breadcrumb"></nav>
     </div>
 
     <div class="file-list-container">
         <ul id="file-list" class="file-list">
-            <div class="loading">加载中...</div>
+            <div class="loading">正在努力加载文件列表...</div>
         </ul>
     </div>
 </div>
@@ -112,81 +100,68 @@
 <script>
     const API_DOMAIN = 'https://api.steveh1110.com';
     const NAS_DOMAIN = 'https://nas.steveh1110.com';
-    let allDataCache = []; // 用于存储获取到的所有文件数据
 
-    // 初始加载
-    async function init() {
+    async function fetchFiles() {
         const urlParams = new URLSearchParams(window.location.search);
         const prefix = urlParams.get('prefix') || '';
-        renderPage(prefix);
-    }
-
-    async function renderPage(prefix) {
         const listElement = document.getElementById('file-list');
         const breadcrumbElement = document.getElementById('breadcrumb');
-        listElement.innerHTML = '<div class="loading">正在读取目录...</div>';
-        
-        renderBreadcrumb(prefix, breadcrumbElement);
 
         try {
+            renderBreadcrumb(prefix, breadcrumbElement);
+
             const response = await fetch(`${API_DOMAIN}?prefix=${encodeURIComponent(prefix)}`);
+            if (!response.ok) throw new Error('无法连接到 API 服务');
+            
             const data = await response.json();
-            renderList(data, prefix);
-        } catch (e) {
-            listElement.innerHTML = `<div class="loading">加载失败: ${e.message}</div>`;
-        }
-    }
+            listElement.innerHTML = '';
 
-    // 核心渲染函数
-    function renderList(data, currentPrefix, isSearch = false) {
-        const listElement = document.getElementById('file-list');
-        listElement.innerHTML = '';
+            // 渲染文件夹
+            if (data.delimitedPrefixes) {
+                data.delimitedPrefixes.forEach(folder => {
+                    const folderName = folder.split('/').filter(Boolean).pop();
+                    const li = document.createElement('li');
+                    li.className = 'file-item';
+                    li.innerHTML = `
+                        <div class="file-info"><span class="file-name">📁 ${folderName}</span></div>
+                        <div class="actions"><a href="?prefix=${encodeURIComponent(folder)}" class="btn btn-folder">打开文件夹</a></div>
+                    `;
+                    listElement.appendChild(li);
+                });
+            }
 
-        // 渲染文件夹 (搜索模式下不显示文件夹，只显示匹配的文件)
-        if (!isSearch && data.delimitedPrefixes) {
-            data.delimitedPrefixes.forEach(folder => {
-                const folderName = folder.split('/').filter(Boolean).pop();
-                const li = document.createElement('li');
-                li.className = 'file-item';
-                li.innerHTML = `
-                    <div class="file-info"><span class="file-name">📁 ${folderName}</span></div>
-                    <div class="actions"><a href="?prefix=${encodeURIComponent(folder)}" class="btn btn-folder">打开</a></div>
-                `;
-                listElement.appendChild(li);
-            });
-        }
+            // 渲染文件
+            if (data.objects) {
+                data.objects.forEach(file => {
+                    if (file.key === prefix) return; 
+                    const fileName = file.key.split('/').pop();
+                    if (!fileName) return;
 
-        // 渲染文件
-        const objects = isSearch ? data : data.objects;
-        if (objects) {
-            objects.forEach(file => {
-                if (file.key === currentPrefix) return;
-                const fileName = file.key.split('/').pop();
-                const filePath = file.key.substring(0, file.key.lastIndexOf('/') + 1);
-                
-                const isPdf = file.key.toLowerCase().endsWith('.pdf');
-                const previewUrl = `${API_DOMAIN}/${encodeURIComponent(file.key)}`;
-                const downloadUrl = `${NAS_DOMAIN}/${encodeURIComponent(file.key)}`;
+                    const isPdf = file.key.toLowerCase().endsWith('.pdf');
+                    const previewUrl = `${API_DOMAIN}/${encodeURIComponent(file.key)}`;
+                    const downloadUrl = `${NAS_DOMAIN}/${encodeURIComponent(file.key)}`;
 
-                const li = document.createElement('li');
-                li.className = 'file-item';
-                li.innerHTML = `
-                    <div class="file-info">
-                        <span class="file-name">📄 ${fileName}</span>
-                        ${isSearch ? `<div class="file-path">📍 位置: <span>${filePath || '根目录'}</span></div>` : ''}
-                        <span class="file-meta">${(file.size / 1024 / 1024).toFixed(2)} MB</span>
-                    </div>
-                    <div class="actions">
-                        ${isPdf ? `<a href="${previewUrl}" target="_blank" class="btn btn-preview">预览</a>` : ''}
-                        <a href="${downloadUrl}" download class="btn btn-download">下载</a>
-                    </div>
-                `;
-                listElement.appendChild(li);
-            });
-        }
-        
-        if (listElement.innerHTML === '') {
-            listElement.innerHTML = '<div class="loading">未找到相关内容</div>';
+                    const li = document.createElement('li');
+                    li.className = 'file-item';
+                    li.innerHTML = `
+                        <div class="file-info">
+                            <span class="file-name">📄 ${fileName}</span>
+                            <span class="file-meta">${(file.size / 1024 / 1024).toFixed(2)} MB</span>
+                        </div>
+                        <div class="actions">
+                            ${isPdf ? `<a href="${previewUrl}" target="_blank" class="btn btn-preview">预览</a>` : ''}
+                            <a href="${downloadUrl}" download class="btn btn-download">下载</a>
+                        </div>
+                    `;
+                    listElement.appendChild(li);
+                });
+            }
+            
+            if (listElement.innerHTML === '') {
+                listElement.innerHTML = '<div class="loading">这个文件夹是空的</div>';
+            }
+        } catch (error) {
+            listElement.innerHTML = `<div style="color:#ef4444; text-align:center; padding:30px;">❌ 加载失败: ${error.message}</div>`;
         }
     }
 
@@ -205,6 +180,7 @@
                 const span = document.createElement('span');
                 span.className = 'breadcrumb-item';
                 if (index === parts.length - 1) {
+                    span.classList.add('active');
                     span.innerText = part;
                 } else {
                     span.innerHTML = `<a href="?prefix=${encodeURIComponent(cumulativePath)}">${part}</a>`;
@@ -214,9 +190,9 @@
         }
     }
 
-    window.addEventListener('DOMContentLoaded', init);
-    // 监听后退/前进事件重新加载
-    window.addEventListener('popstate', init);
+    window.addEventListener('DOMContentLoaded', fetchFiles);
+    // 监听 URL 变化（如点击后退按钮）时重新加载数据
+    window.addEventListener('popstate', fetchFiles);
 </script>
 </body>
 </html>
