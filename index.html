@@ -56,12 +56,13 @@
                 listElement.appendChild(backLi);
             }
 
-            // 2. 渲染文件夹 (对应 R2 原始数据的 delimitedPrefixes)
+            // 2. 渲染文件夹 (清理前缀)
             if (data.delimitedPrefixes) {
                 data.delimitedPrefixes.forEach(folder => {
                     const li = document.createElement('li');
                     li.className = 'file-item';
                     
+                    // 只显示当前级的文件夹名，去掉父路径和末尾斜杠
                     const folderDisplayName = folder.replace(prefix, '').replace(/\/$/, '');
                     
                     li.innerHTML = `
@@ -72,20 +73,23 @@
                 });
             }
 
-            // 3. 渲染文件 (对应 R2 原始数据的 objects)
+            // 3. 渲染文件 (清理前缀)
             if (data.objects) {
                 data.objects.forEach(file => {
-                    if (file.key === prefix) return; // 跳过目录自身
+                    if (file.key === prefix) return; // 过滤掉目录占位符自身
 
                     const li = document.createElement('li');
                     li.className = 'file-item';
                     const fileUrl = `${API_URL}/${encodeURIComponent(file.key)}`;
                     const isPdf = file.key.toLowerCase().endsWith('.pdf');
-                    const displayName = file.key.replace(prefix, '');
+
+                    // ✨ 关键改动：只显示文件名，去掉前面的路径
+                    // 比如从 "books/Operating Systems.pdf" 变成 "Operating Systems.pdf"
+                    const fileDisplayName = file.key.replace(prefix, '');
 
                     li.innerHTML = `
                         <div class="file-info">
-                            <span class="file-name">📄 ${displayName}</span>
+                            <span class="file-name">📄 ${fileDisplayName}</span>
                             <span class="file-size">${(file.size / 1024 / 1024).toFixed(2)} MB</span>
                         </div>
                         <div class="actions">
