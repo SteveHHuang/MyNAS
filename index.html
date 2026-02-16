@@ -33,7 +33,7 @@
 </div>
 
 <script>
-    const API_URL = 'https://api.steveh1110.com';
+    const API_URL = 'https://nas.steveh1110.com';
 
     async function fetchFiles() {
         const urlParams = new URLSearchParams(window.location.search);
@@ -43,7 +43,7 @@
         try {
             // 访问轻量化后的 Worker 接口
             const response = await fetch(`${API_URL}?prefix=${encodeURIComponent(prefix)}`);
-            if (!response.ok) throw new Error('API 响应异常');
+            if (!response.ok) throw new Error('ERROR');
             
             const data = await response.json();
             listElement.innerHTML = '';
@@ -56,14 +56,16 @@
                 listElement.appendChild(backLi);
             }
 
-            // 2. 渲染文件夹 (清理前缀)
+            // 2. 渲染文件夹 (精准切除路径)
             if (data.delimitedPrefixes) {
                 data.delimitedPrefixes.forEach(folder => {
                     const li = document.createElement('li');
                     li.className = 'file-item';
                     
-                    // 只显示当前级的文件夹名，去掉父路径和末尾斜杠
-                    const folderDisplayName = folder.replace(prefix, '').replace(/\/$/, '');
+                    // 核心改动：使用 split 和 filter 获取路径的最后一部分
+                    // 比如 "books/IELTS/textbooks/" 经过处理会变成 "textbooks"
+                    const parts = folder.split('/').filter(Boolean);
+                    const folderDisplayName = parts[parts.length - 1];
                     
                     li.innerHTML = `
                         <div class="file-info"><span class="file-name">📁 ${folderDisplayName}</span></div>
@@ -73,19 +75,20 @@
                 });
             }
 
-            // 3. 渲染文件 (清理前缀)
+            // 3. 渲染文件 (精准切除路径)
             if (data.objects) {
                 data.objects.forEach(file => {
-                    if (file.key === prefix) return; // 过滤掉目录占位符自身
+                    if (file.key === prefix) return; 
 
                     const li = document.createElement('li');
                     li.className = 'file-item';
                     const fileUrl = `${API_URL}/${encodeURIComponent(file.key)}`;
                     const isPdf = file.key.toLowerCase().endsWith('.pdf');
 
-                    // ✨ 关键改动：只显示文件名，去掉前面的路径
-                    // 比如从 "books/Operating Systems.pdf" 变成 "Operating Systems.pdf"
-                    const fileDisplayName = file.key.replace(prefix, '');
+                    // ✨ 核心改动：只取路径最后一部分
+                    // 比如 "books/IELTS/Cambridge-18.pdf" 变成 "Cambridge-18.pdf"
+                    const fileParts = file.key.split('/');
+                    const fileDisplayName = fileParts[fileParts.length - 1];
 
                     li.innerHTML = `
                         <div class="file-info">
