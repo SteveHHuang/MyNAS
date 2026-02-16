@@ -57,10 +57,18 @@
 
 <div class="container">
     <h1 id="title">📁 我的共享文件</h1>
+    
+    <nav id="breadcrumb" class="breadcrumb"></nav>
+
+    <div class="search-box">
+        <input type="text" id="search-input" placeholder="🔍 搜索当前文件夹..." oninput="filterFiles()">
+    </div>
+
     <ul id="file-list" class="file-list">
         <div class="loading">正在扫描仓库，请稍候...</div>
     </ul>
 </div>
+
 <script>
     const API_DOMAIN = 'https://api.steveh1110.com';
     const NAS_DOMAIN = 'https://nas.steveh1110.com';
@@ -73,10 +81,10 @@
         const searchInput = document.getElementById('search-input');
 
         // 每次进入新目录，清空搜索框
-        searchInput.value = '';
+        if (searchInput) searchInput.value = '';
 
         try {
-            renderBreadcrumb(prefix, breadcrumbElement);
+            if (breadcrumbElement) renderBreadcrumb(prefix, breadcrumbElement);
 
             const response = await fetch(`${API_DOMAIN}?prefix=${encodeURIComponent(prefix)}`);
             if (!response.ok) throw new Error('API 请求失败');
@@ -131,15 +139,21 @@
 
     // 实时搜索过滤逻辑
     function filterFiles() {
-        const term = document.getElementById('search-input').value.toLowerCase();
+        const input = document.getElementById('search-input');
+        if (!input) return;
+        const term = input.value.toLowerCase();
         const items = document.querySelectorAll('.file-item');
         items.forEach(item => {
-            const name = item.querySelector('.file-name').innerText.toLowerCase();
-            item.style.display = name.includes(term) ? 'flex' : 'none';
+            const nameElement = item.querySelector('.file-name');
+            if (nameElement) {
+                const name = nameElement.innerText.toLowerCase();
+                item.style.display = name.includes(term) ? 'flex' : 'none';
+            }
         });
     }
 
     function renderBreadcrumb(prefix, container) {
+        if (!container) return;
         container.innerHTML = '';
         const rootSpan = document.createElement('span');
         rootSpan.className = 'breadcrumb-item';
@@ -164,7 +178,8 @@
         }
     }
 
-    fetchFiles();
+    // 🟢 使用事件监听，确保页面元素加载后再运行脚本
+    window.addEventListener('DOMContentLoaded', fetchFiles);
 </script>
 </body>
 </html>
