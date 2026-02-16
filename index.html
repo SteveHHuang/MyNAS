@@ -16,67 +16,41 @@
         
         h1 { font-size: 1.5rem; color: #0f172a; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
 
-        
+        /* 面包屑导航栏 */
         .breadcrumb {
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            padding: 12px 16px;
-            margin-bottom: 20px;
-            background: #f8fafc;
-            border-radius: 8px;
-            font-size: 0.9rem;
-            border: 1px solid #e2e8f0;
+            display: flex; flex-wrap: wrap; align-items: center; padding: 12px 16px; margin-bottom: 15px;
+            background: #f8fafc; border-radius: 8px; font-size: 0.9rem; border: 1px solid #e2e8f0;
         }
         .breadcrumb-item { display: flex; align-items: center; }
-        .breadcrumb-item + .breadcrumb-item::before {
-            content: "›";
-            padding: 0 8px;
-            color: #cbd5e1;
-            font-size: 1.2rem;
+        .breadcrumb-item + .breadcrumb-item::before { content: "›"; padding: 0 8px; color: #cbd5e1; font-size: 1.2rem; }
+        .breadcrumb-item a { color: var(--primary-color); text-decoration: none; font-weight: 500; }
+        .breadcrumb-item.active { color: var(--text-muted); }
+
+        /* 搜索框样式 */
+        .search-box { margin-bottom: 20px; position: relative; }
+        #search-input {
+            width: 100%; padding: 12px 16px; border: 1px solid #e2e8f0; border-radius: 8px;
+            font-size: 0.9rem; outline: none; transition: all 0.2s; box-sizing: border-box;
         }
-        .breadcrumb-item a {
-            color: var(--primary-color);
-            text-decoration: none;
-            font-weight: 500;
-        }
-        .breadcrumb-item a:hover { text-decoration: underline; }
-        .breadcrumb-item.active { color: var(--text-muted); font-weight: normal; }
+        #search-input:focus { border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
 
         /* 列表样式 */
         .file-list { list-style: none; padding: 0; margin: 0; }
         .file-item { 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            padding: 14px; 
-            border-bottom: 1px solid #f1f5f9; 
-            transition: all 0.2s; 
-            border-radius: 8px; 
+            display: flex; justify-content: space-between; align-items: center; 
+            padding: 14px; border-bottom: 1px solid #f1f5f9; border-radius: 8px; transition: 0.2s;
         }
         .file-item:hover { background: #f8fafc; transform: translateX(4px); }
         .file-info { display: flex; flex-direction: column; overflow: hidden; margin-right: 10px; }
         .file-name { font-weight: 500; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .file-size { font-size: 0.75rem; color: #94a3b8; margin-top: 4px; }
 
-        /* 按钮样式 */
         .actions { display: flex; gap: 10px; flex-shrink: 0; }
-        .btn { 
-            padding: 6px 14px; 
-            border-radius: 8px; 
-            text-decoration: none; 
-            font-size: 0.85rem; 
-            font-weight: 600; 
-            transition: all 0.2s; 
-            border: 1px solid transparent; 
-        }
+        .btn { padding: 6px 14px; border-radius: 8px; text-decoration: none; font-size: 0.85rem; font-weight: 600; border: 1px solid transparent; }
         .btn-preview { background: #ecfdf5; color: #059669; border-color: #10b981; }
         .btn-download { background: #eff6ff; color: #2563eb; border-color: #3b82f6; }
         .btn-folder { background: #fff7ed; color: #c2410c; border-color: #fb923c; }
-        .btn:hover { opacity: 0.8; filter: brightness(0.95); }
-
         .loading { text-align: center; color: var(--text-muted); padding: 40px; }
-        .error-msg { color: #ef4444; text-align: center; padding: 20px; background: #fef2f2; border-radius: 8px; }
     </style>
 </head>
 <body>
@@ -87,30 +61,30 @@
         <div class="loading">正在扫描仓库，请稍候...</div>
     </ul>
 </div>
-
 <script>
-    // ======= 核心域名配置 =======
-    const API_DOMAIN = 'https://api.steveh1110.com'; // 用于获取列表及 PDF 预览
-    const NAS_DOMAIN = 'https://nas.steveh1110.com'; // 用于普通文件下载
+    const API_DOMAIN = 'https://api.steveh1110.com';
+    const NAS_DOMAIN = 'https://nas.steveh1110.com';
 
     async function fetchFiles() {
         const urlParams = new URLSearchParams(window.location.search);
         const prefix = urlParams.get('prefix') || '';
         const listElement = document.getElementById('file-list');
         const breadcrumbElement = document.getElementById('breadcrumb');
+        const searchInput = document.getElementById('search-input');
+
+        // 每次进入新目录，清空搜索框
+        searchInput.value = '';
 
         try {
-            // 1. 生成面包屑导航
             renderBreadcrumb(prefix, breadcrumbElement);
 
-            // 2. 从 API 获取数据
             const response = await fetch(`${API_DOMAIN}?prefix=${encodeURIComponent(prefix)}`);
-            if (!response.ok) throw new Error('无法连接到 API，请检查 Worker 状态');
+            if (!response.ok) throw new Error('API 请求失败');
             
             const data = await response.json();
             listElement.innerHTML = '';
 
-            // 3. 渲染文件夹
+            // 渲染文件夹
             if (data.delimitedPrefixes) {
                 data.delimitedPrefixes.forEach(folder => {
                     const folderName = folder.split('/').filter(Boolean).pop();
@@ -124,16 +98,14 @@
                 });
             }
 
-            // 4. 渲染文件
+            // 渲染文件
             if (data.objects) {
                 data.objects.forEach(file => {
                     if (file.key === prefix) return; 
-
                     const fileName = file.key.split('/').pop();
                     if (!fileName) return;
 
                     const isPdf = file.key.toLowerCase().endsWith('.pdf');
-                    // 预览走 API (Worker), 下载走 NAS (R2 直连)
                     const previewUrl = `${API_DOMAIN}/${encodeURIComponent(file.key)}`;
                     const downloadUrl = `${NAS_DOMAIN}/${encodeURIComponent(file.key)}`;
 
@@ -152,21 +124,23 @@
                     listElement.appendChild(li);
                 });
             }
-
-            if (listElement.innerHTML === '') {
-                listElement.innerHTML = '<div class="loading">该文件夹下没有文件</div>';
-            }
-
         } catch (error) {
-            listElement.innerHTML = `<div class="error-msg">❌ 加载失败: ${error.message}</div>`;
+            listElement.innerHTML = `<div style="color:red; text-align:center; padding:20px;">加载失败: ${error.message}</div>`;
         }
     }
 
-    // 面包屑渲染函数
+    // 实时搜索过滤逻辑
+    function filterFiles() {
+        const term = document.getElementById('search-input').value.toLowerCase();
+        const items = document.querySelectorAll('.file-item');
+        items.forEach(item => {
+            const name = item.querySelector('.file-name').innerText.toLowerCase();
+            item.style.display = name.includes(term) ? 'flex' : 'none';
+        });
+    }
+
     function renderBreadcrumb(prefix, container) {
         container.innerHTML = '';
-        
-        // 根目录起点
         const rootSpan = document.createElement('span');
         rootSpan.className = 'breadcrumb-item';
         rootSpan.innerHTML = `<a href="?prefix=">🏠 全部文件</a>`;
@@ -175,12 +149,10 @@
         if (prefix) {
             const parts = prefix.split('/').filter(Boolean);
             let cumulativePath = '';
-            
             parts.forEach((part, index) => {
                 cumulativePath += part + '/';
                 const span = document.createElement('span');
                 span.className = 'breadcrumb-item';
-                
                 if (index === parts.length - 1) {
                     span.classList.add('active');
                     span.innerText = part;
@@ -194,6 +166,5 @@
 
     fetchFiles();
 </script>
-
 </body>
 </html>
