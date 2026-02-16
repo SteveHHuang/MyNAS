@@ -33,7 +33,8 @@
 </div>
 
 <script>
-    const API_URL = 'https://nas.steveh1110.com';
+    const API_URL = 'https://api.steveh1110.com';
+    const FILE_URL = 'https://nas.steveh1110.com';
 
     async function fetchFiles() {
         const urlParams = new URLSearchParams(window.location.search);
@@ -82,10 +83,10 @@
 
                     const li = document.createElement('li');
                     li.className = 'file-item';
-                    const fileUrl = `${API_URL}/${encodeURIComponent(file.key)}`;
+                    const fileUrl = `${FILE_URL}/${encodeURIComponent(file.key)}`;
                     const isPdf = file.key.toLowerCase().endsWith('.pdf');
 
-                    // ✨ 核心改动：只取路径最后一部分
+                    // 只取路径最后一部分
                     // 比如 "books/IELTS/Cambridge-18.pdf" 变成 "Cambridge-18.pdf"
                     const fileParts = file.key.split('/');
                     const fileDisplayName = fileParts[fileParts.length - 1];
