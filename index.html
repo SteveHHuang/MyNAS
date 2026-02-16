@@ -33,8 +33,9 @@
 </div>
 
 <script>
-    const API_URL = 'https://api.steveh1110.com';
-    const FILE_URL = 'https://nas.steveh1110.com';
+    // ======= 域名配置 =======
+    const API_DOMAIN = 'https://api.steveh1110.com'; // 接口及预览域名
+    const NAS_DOMAIN = 'https://nas.steveh1110.com'; // 纯下载域名
 
     async function fetchFiles() {
         const urlParams = new URLSearchParams(window.location.search);
@@ -42,14 +43,13 @@
         const listElement = document.getElementById('file-list');
 
         try {
-            // 访问轻量化后的 Worker 接口
-            const response = await fetch(`${API_URL}?prefix=${encodeURIComponent(prefix)}`);
-            if (!response.ok) throw new Error('ERROR');
+            const response = await fetch(`${API_DOMAIN}?prefix=${encodeURIComponent(prefix)}`);
+            if (!response.ok) throw new Error('网络请求异常');
             
             const data = await response.json();
             listElement.innerHTML = '';
 
-            // 1. 返回上一级
+            // 1. 返回上一级逻辑
             if (prefix !== '') {
                 const backLi = document.createElement('li');
                 backLi.className = 'file-item';
@@ -57,48 +57,45 @@
                 listElement.appendChild(backLi);
             }
 
-            // 2. 渲染文件夹 (精准切除路径)
+            // 2. 渲染文件夹 (只显示文件夹名)
             if (data.delimitedPrefixes) {
                 data.delimitedPrefixes.forEach(folder => {
+                    const parts = folder.split('/').filter(Boolean);
+                    const folderName = parts[parts.length - 1];
+                    
                     const li = document.createElement('li');
                     li.className = 'file-item';
-                    
-                    // 核心改动：使用 split 和 filter 获取路径的最后一部分
-                    // 比如 "books/IELTS/textbooks/" 经过处理会变成 "textbooks"
-                    const parts = folder.split('/').filter(Boolean);
-                    const folderDisplayName = parts[parts.length - 1];
-                    
                     li.innerHTML = `
-                        <div class="file-info"><span class="file-name">📁 ${folderDisplayName}</span></div>
-                        <div class="actions"><a href="?prefix=${encodeURIComponent(folder)}" class="btn btn-download">打开</a></div>
+                        <div class="file-info"><span class="file-name">📁 ${folderName}</span></div>
+                        <div class="actions"><a href="?prefix=${encodeURIComponent(folder)}" class="btn btn-folder">打开</a></div>
                     `;
                     listElement.appendChild(li);
                 });
             }
 
-            // 3. 渲染文件 (精准切除路径)
+            // 3. 渲染文件 (预览走 API，下载走 NAS)
             if (data.objects) {
                 data.objects.forEach(file => {
                     if (file.key === prefix) return; 
 
-                    const li = document.createElement('li');
-                    li.className = 'file-item';
-                    const fileUrl = `${FILE_URL}/${encodeURIComponent(file.key)}`;
+                    const fileParts = file.key.split('/');
+                    const fileName = fileParts[fileParts.length - 1];
+                    
+                    // 定义不同的链接
+                    const previewUrl = `${API_DOMAIN}/${encodeURIComponent(file.key)}`;
+                    const downloadUrl = `${NAS_DOMAIN}/${encodeURIComponent(file.key)}`;
                     const isPdf = file.key.toLowerCase().endsWith('.pdf');
 
-                    // 只取路径最后一部分
-                    // 比如 "books/IELTS/Cambridge-18.pdf" 变成 "Cambridge-18.pdf"
-                    const fileParts = file.key.split('/');
-                    const fileDisplayName = fileParts[fileParts.length - 1];
-
+                    const li = document.createElement('li');
+                    li.className = 'file-item';
                     li.innerHTML = `
                         <div class="file-info">
-                            <span class="file-name">📄 ${fileDisplayName}</span>
+                            <span class="file-name">📄 ${fileName}</span>
                             <span class="file-size">${(file.size / 1024 / 1024).toFixed(2)} MB</span>
                         </div>
                         <div class="actions">
-                            ${isPdf ? `<a href="${fileUrl}" target="_blank" class="btn btn-preview">预览</a>` : ''}
-                            <a href="${fileUrl}" download class="btn btn-download">下载</a>
+                            ${isPdf ? `<a href="${previewUrl}" target="_blank" class="btn btn-preview">预览</a>` : ''}
+                            <a href="${downloadUrl}" download class="btn btn-download">下载</a>
                         </div>
                     `;
                     listElement.appendChild(li);
@@ -106,12 +103,11 @@
             }
 
             if (listElement.innerHTML === '') {
-                listElement.innerHTML = '<div class="loading">这里空空如也...</div>';
+                listElement.innerHTML = '<div class="loading">此目录为空</div>';
             }
 
         } catch (error) {
-            console.error(error);
-            listElement.innerHTML = `<div class="loading" style="color: #ef4444;">❌ 加载失败：${error.message}<br>请检查 Worker 绑定及域名状态</div>`;
+            listElement.innerHTML = `<div class="loading" style="color: #ef4444;">加载失败: ${error.message}</div>`;
         }
     }
 
