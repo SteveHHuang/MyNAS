@@ -46,17 +46,6 @@
         .breadcrumb-item + .breadcrumb-item::before { content: "›"; padding: 0 8px; color: #cbd5e1; font-size: 1.2rem; }
         .breadcrumb-item a { color: var(--primary-color); text-decoration: none; font-weight: 500; }
 
-        /* 搜索框 */
-        .search-row { position: relative; }
-        #search-input {
-            width: 100%; padding: 12px 16px 12px 40px; border: 1px solid var(--border-color); border-radius: 8px;
-            font-size: 0.95rem; outline: none; transition: 0.2s; box-sizing: border-box; background: #fff;
-        }
-        #search-input:focus { border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
-        .search-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-muted); }
-        
-        /* 搜索状态提示 */
-        #search-status { font-size: 0.8rem; color: var(--primary-color); margin-top: 8px; display: none; }
 
         /* 文件列表区 */
         .file-list-container {
@@ -198,39 +187,6 @@
         
         if (listElement.innerHTML === '') {
             listElement.innerHTML = '<div class="loading">未找到相关内容</div>';
-        }
-    }
-
-    // 全局搜索处理逻辑 (递归模拟)
-    async function handleSearch(e) {
-        const term = e.target.value.trim().toLowerCase();
-        if (term === '') {
-            const urlParams = new URLSearchParams(window.location.search);
-            renderPage(urlParams.get('prefix') || '');
-            document.getElementById('search-status').style.display = 'none';
-            return;
-        }
-
-        if (e.key === 'Enter') {
-            document.getElementById('search-status').style.display = 'block';
-            document.getElementById('file-list').innerHTML = '<div class="loading">🔍 正在全库搜索中，请稍候...</div>';
-            
-            try {
-                // 方案：获取根目录下所有文件（需要后端 API 支持递归，如果不支持，则只能搜索当前目录）
-                // 这里我们假设 API 默认返回当前目录。如果想做全库，建议在 Cloudflare Worker 增加一个 ?all=true 参数
-                const response = await fetch(`${API_DOMAIN}?prefix=`); 
-                const data = await response.json();
-                
-                // 简单的过滤逻辑
-                const results = data.objects.filter(obj => 
-                    obj.key.toLowerCase().includes(term)
-                );
-                
-                renderList(results, '', true);
-                document.getElementById('search-status').innerText = `找到 ${results.length} 个结果`;
-            } catch (err) {
-                console.error(err);
-            }
         }
     }
 
